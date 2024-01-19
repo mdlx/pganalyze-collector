@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 # Set up vendor include path
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 sys.path.insert(1, sys.path[0] + '/vendor/')
 
@@ -10,7 +12,7 @@ import calendar
 import datetime
 import re
 import json
-import urllib, urllib2
+import six.moves.urllib.request, six.moves.urllib.parse, six.moves.urllib.error, six.moves.urllib.request, six.moves.urllib.error, six.moves.urllib.parse
 import logging
 from pprint import pformat
 from optparse import OptionParser
@@ -176,7 +178,7 @@ def fetch_postgres_information():
         schema[oid]['constraints'].append(row)
 
     # Populate result dictionary
-    info['schema']   = schema.values()
+    info['schema']   = list(schema.values())
     info['version']  = PI.version()
     info['server']   = PI.server_stats()
     info['database'] = PI.db_stats()
@@ -232,7 +234,7 @@ def post_data_to_web(data):
     if option['dryrun']:
         logger.info("Dumping data that would get posted")
 
-        print(json.dumps(to_post, sort_keys=True, indent=4, separators=(',', ': '), cls=DatetimeEncoder))
+        print((json.dumps(to_post, sort_keys=True, indent=4, separators=(',', ': '), cls=DatetimeEncoder)))
 
         logger.info("Exiting.")
         sys.exit(0)
@@ -245,11 +247,11 @@ def post_data_to_web(data):
         try:
             if option['jsonendpoint']:
                 headers = {"Content-Type": "application/json"}
-                req = urllib2.Request(api_url, headers=headers, data=json.dumps(to_post, cls=DatetimeEncoder))
-                res = urllib2.urlopen(req)
+                req = six.moves.urllib.request.Request(api_url, headers=headers, data=json.dumps(to_post, cls=DatetimeEncoder))
+                res = six.moves.urllib.request.urlopen(req)
             else:
                 # FIXME: urllib doesn't do any SSL verification
-                res = urllib.urlopen(api_url, urllib.urlencode(to_post))
+                res = six.moves.urllib.request.urlopen(api_url, six.moves.urllib.parse.urlencode(to_post))
 
             message = res.read()
             code = res.getcode()
@@ -269,7 +271,7 @@ def post_data_to_web(data):
 def fetch_query_information():
     query = "SELECT extname FROM pg_extension"
 
-    extensions = map(lambda q: q['extname'], db.run_query(query))
+    extensions = [q['extname'] for q in db.run_query(query)]
     if 'pg_stat_statements' in extensions:
         logger.debug("Found pg_stat_statements, using it for query information")
         return ['pg_stat_statements', PgStatStatements(db).fetch_queries()]
